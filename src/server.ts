@@ -21,6 +21,11 @@ function normalizeHost(hostHeader: string | undefined): string {
 }
 
 function hostGuard(req: Request, res: Response, next: NextFunction) {
+  if (req.path === "/health") {
+    next()
+    return
+  }
+
   const host = normalizeHost(req.headers.host)
   const allowed = config.allowedHosts.map((item) => item.toLowerCase())
   if (host && allowed.includes(host)) {
