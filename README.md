@@ -2,6 +2,12 @@
 
 Remote MCP endpoint for Ergo/Sage tools, designed for `https://mcp.ergoblockchain.org/mcp`.
 
+Current production app:
+
+- Fly app: `ergoblockchain-mcp`
+- Live Fly healthcheck: `https://ergoblockchain-mcp.fly.dev/health`
+- Target public endpoint: `https://mcp.ergoblockchain.org/mcp`
+
 The server uses MCP Streamable HTTP and exposes:
 
 - `search_ergo_docs` - BM25 search over the local Sage/Ergo index with cited URLs.
@@ -65,10 +71,29 @@ ALLOWED_ORIGINS=https://www.ergoblockchain.org,https://ergoblockchain.org
 MCP_API_KEY=<long-random-token>
 ```
 
-3. Point DNS:
+3. Point DNS. For the current Fly app, use either the recommended A/AAAA pair:
 
 ```text
-mcp.ergoblockchain.org CNAME <hosting-provider-target>
+A    mcp.ergoblockchain.org -> 66.241.125.130
+AAAA mcp.ergoblockchain.org -> 2a09:8280:1::116:b65b:0
+```
+
+Or use the Fly CNAME target:
+
+```text
+CNAME mcp.ergoblockchain.org -> yk030zx.ergoblockchain-mcp.fly.dev
+```
+
+If certificate issuance is needed before routing traffic, add:
+
+```text
+CNAME _acme-challenge.mcp.ergoblockchain.org -> mcp.ergoblockchain.org.yk030zx.flydns.net
+```
+
+If the domain is proxied through a CDN, add the ownership record too:
+
+```text
+TXT _fly-ownership.mcp.ergoblockchain.org -> app-yk030zx
 ```
 
 4. For Fly.io, copy `fly.toml.example` to `fly.toml`, set secrets, deploy:
