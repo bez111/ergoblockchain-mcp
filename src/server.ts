@@ -10,6 +10,7 @@ import { sageIndexMeta } from "./retrieve.js"
 type McpTransport = StreamableHTTPServerTransport
 
 const transports = new Map<string, McpTransport>()
+const MAX_TRANSPORTS = 100
 
 function normalizeHost(hostHeader: string | undefined): string {
   if (!hostHeader) return ""
@@ -68,6 +69,17 @@ function sendJsonRpcError(res: Response, status: number, message: string) {
   })
 }
 
+function pruneOldestTransportIfNeeded() {
+  if (transports.size < MAX_TRANSPORTS) return
+  const oldestSessionId = transports.keys().next().value as string | undefined
+  if (!oldestSessionId) return
+  const oldest = transports.get(oldestSessionId)
+  transports.delete(oldestSessionId)
+  void oldest?.close().catch((error: unknown) => {
+    console.warn("[mcp] failed to close pruned session", error)
+  })
+}
+
 function originAllowed(origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) {
   if (!origin) {
     callback(null, true)
@@ -96,6 +108,21 @@ app.use(
 )
 app.use(express.json({ limit: "1mb" }))
 
+app.get("/", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "ergoblockchain-mcp",
+    version: "0.1.0",
+    transport: "streamable-http",
+    endpoints: {
+      health: `${config.mcpPublicBaseUrl}/health`,
+      mcp: `${config.mcpPublicBaseUrl}/mcp`,
+      site: config.siteBaseUrl,
+    },
+    usage: "Use /health for service status or /mcp for MCP Streamable HTTP clients.",
+  })
+})
+
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
@@ -120,6 +147,7 @@ app.post("/mcp", authGuard, async (req, res) => {
       return
     }
   } else if (isInitializeRequest(req.body)) {
+    pruneOldestTransportIfNeeded()
     transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (newSessionId) => {

@@ -15,6 +15,10 @@ The server uses MCP Streamable HTTP and exposes:
 - `get_sage_index_status` - reports the bundled index metadata.
 - `get_sage_receipt_url` - builds a public Sage receipt URL.
 
+The public `/mcp` surface should run with `MCP_API_KEY` set. The server also
+caps in-memory Streamable HTTP sessions at 100 and prunes the oldest session
+before accepting a new initialize request.
+
 ## Local Development
 
 ```bash
@@ -108,6 +112,8 @@ fly deploy
 ```bash
 curl https://mcp.ergoblockchain.org/health
 ```
+
+Detailed DNS and certificate checklist: [`docs/dns-runbook.md`](docs/dns-runbook.md).
 
 6. Configure MCP clients with:
 
